@@ -2,6 +2,19 @@
 
 # ANG Flight Log App — Claude Code Context
 
+## Communication Style
+- user types lowercase and short — do not assume missing words are errors
+- never use CAPS in responses
+- be concise: one or two sentences max unless depth is genuinely needed
+- do not recap what you just did at end of responses
+
+## Core Rules
+- read files before editing — never guess at contents
+- prefer small, incremental changes
+- no `any` in TypeScript
+- no comments unless the why is non-obvious
+- no hallucinating file contents or URLs
+
 ## Project Overview
 This is a Next.js flight log application built for aviation operations. It scans and processes paper flight logs, tracks fuel dockets, monitors engine trend data, and provides analytics across flight operations.
 
@@ -71,14 +84,20 @@ The app is live and in production. I (Ethan) am a business partner working on a 
 ---
 
 ## Tech Stack
-- **Framework:** Next.js 16 (App Router)
-- **Language:** TypeScript
-- **Styling:** Tailwind CSS v4
+- **Framework:** Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS v4
 - **Charts:** Recharts
 - **Database:** PostgreSQL via `pg` (connection pool in `lib/db.ts`)
-- **Auth:** iron-session
+- **Auth:** iron-session (cookie: `flight_log_session`)
 - **AI:** Anthropic SDK (@anthropic-ai/sdk)
-- **Storage:** Azure Blob Storage
+- **Storage:** Azure Blob Storage (container `logs` in `flightlogimages` account)
+- **API:** FastAPI service (`flight-log-api`) running in Azure Container Apps
+
+## Key Patterns
+- fuel docket extraction: split PDF pages with pdftoppm, skip pages with no supplier OR no docket_number
+- docket save: Next.js route talks directly to PostgreSQL (not via FastAPI)
+- blob delete on docket delete: `image_url.split('/logs/')[1]` to get blob name
+- import large files via local Python script, not browser upload (times out on Azure)
+- always standalone mode — never Oryx rebuild (SCM_DO_BUILD=false)
 
 ---
 
