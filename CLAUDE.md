@@ -33,7 +33,7 @@ The app is live and in production. I (Ethan) am a business partner working on a 
 ---
 
 ## My Environment
-- **Local project path:** `/Users/ethannhill/Library/CloudStorage/OneDrive-Kingsleyhill.com.au/Ethan Work - 2026/flight-log-app-main`
+- **Local project path:** `/Users/ethannhill/work/ANG-Flight-Log-App-Test-Base`
 - **My GitHub repo:** `https://github.com/ethannhill/ANG-Flight-Log-App-Test-Base`
 - **Run locally:** `npm run dev` → `http://localhost:3000`
 - **Node version:** v24.16.0
