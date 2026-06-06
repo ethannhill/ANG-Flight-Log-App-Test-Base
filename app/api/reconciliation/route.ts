@@ -38,7 +38,7 @@ async function fetchSkynetFlights(from: string, to: string): Promise<SkynetFligh
   const json = await res.json()
   const rows: Record<string, unknown>[] = Array.isArray(json) ? json : (json.legs ?? json.flights ?? json.data ?? [])
 
-  return rows.map(r => {
+  return rows.map((r, idx) => {
     const dep = r['Departure'] as Record<string, unknown> | undefined
     const dest = r['Destination'] as Record<string, unknown> | undefined
     const oooi = (r['FlightData'] as Record<string, unknown> | undefined)?.['OOOI'] as Record<string, unknown> | undefined
@@ -49,9 +49,8 @@ async function fetchSkynetFlights(from: string, to: string): Promise<SkynetFligh
     // FlightTime from Skynet is in minutes — convert to hours for comparison
     const flightTimeHours = Math.round((Number(r['FlightTime'] ?? 0) / 60) * 100) / 100
 
-    const offTime = String(oooi?.['Off'] ?? '').replace(/[^0-9]/g, '')
     return {
-      id:                    `${String(r['Reference'] ?? '')}_${String(r['Aircraft'] ?? '')}_${offTime}`,
+      id:                    `${idx}_${String(r['Reference'] ?? '')}_${String(r['Aircraft'] ?? '')}`,
       flight_reference:      String(r['Reference'] ?? ''),
       flight_number:         String(r['FlightNumber'] ?? ''),
       aircraft_registration: String(r['Aircraft'] ?? ''),
