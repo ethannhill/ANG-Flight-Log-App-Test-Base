@@ -29,35 +29,47 @@ type SkynetFlight = {
 
 async function fetchSkynetFlights(from: string, to: string): Promise<SkynetFlight[]> {
   if (!SKYNET_KEY || !SKYNET_URL) return []
-  const params = new URLSearchParams({ from, to, limit: '500' })
-  const res = await fetch(`${SKYNET_URL}/flights?${params}`, {
+  const params = new URLSearchParams({ startDate: from, endDate: to })
+  const res = await fetch(`${SKYNET_URL}?${params}`, {
     headers: { Authorization: `Bearer ${SKYNET_KEY}` },
     next: { revalidate: 0 },
   })
   if (!res.ok) throw new Error(`SKYNET ${res.status}`)
   const json = await res.json()
-  const rows: Record<string, unknown>[] = Array.isArray(json) ? json : (json.flights ?? json.data ?? [])
+  const rows: Record<string, unknown>[] = Array.isArray(json) ? json : (json.legs ?? json.flights ?? json.data ?? [])
 
-  // Normalise SKYNET field names to our internal type
-  return rows.map(r => ({
-    id:                   String(r['Flight Reference'] ?? r['flight_reference'] ?? r['id'] ?? ''),
-    flight_reference:     String(r['Flight Reference'] ?? r['flight_reference'] ?? ''),
-    flight_number:        String(r['Flight Number'] ?? r['flight_number'] ?? ''),
-    aircraft_registration: String(r['Tail Number'] ?? r['tail_number'] ?? r['aircraft_registration'] ?? ''),
-    departure_date:       String(r['Actual Departure'] ?? r['actual_departure'] ?? r['departure_date'] ?? '').substring(0, 10),
-    flight_time_hours:    Number(r['Flight Time'] ?? r['flight_time'] ?? r['flight_time_hours'] ?? 0),
-    billed_flight_time:   Number(r['Billed Flight Time'] ?? r['billed_flight_time'] ?? r['Flight Time'] ?? 0),
-    landings:             Number(r['landings'] ?? 0),
-    captain:              String(r['Command Pilot'] ?? r['command_pilot'] ?? r['captain'] ?? ''),
-    other_crew:           String(r['Other Crew'] ?? r['other_crew'] ?? ''),
-    passenger_count:      Number(r['Passenger Count'] ?? r['passenger_count'] ?? 0),
-    client:               String(r['Flight Contract'] ?? r['flight_contract'] ?? r['client'] ?? ''),
-    fuel_docket:          String(r['Fuel Docket #'] ?? r['fuel_docket'] ?? ''),
-    fuel_qty:             Number(r['Fuel QTY'] ?? r['fuel_qty'] ?? 0),
-    departure_point:      String(r['Departure Point'] ?? r['departure_point'] ?? ''),
-    arrival_point:        String(r['Arrival Point'] ?? r['arrival_point'] ?? ''),
-    status:               String(r['status'] ?? ''),
-  }))
+  return rows.map(r => {
+    const dep = r['Departure'] as Record<string, unknown> | undefined
+    const dest = r['Destination'] as Record<string, unknown> | undefined
+    const oooi = (r['FlightData'] as Record<string, unknown> | undefined)?.['OOOI'] as Record<string, unknown> | undefined
+    const crew = (r['Crew'] as { FullName: string; Position: string }[] | undefined) ?? []
+    const captain = crew.find(c => c.Position?.toLowerCase().includes('captain'))?.FullName ?? ''
+    const otherCrew = crew.filter(c => !c.Position?.toLowerCase().includes('captain')).map(c => c.FullName).join(', ')
+    const departureDate = String(oooi?.['Off'] ?? dep?.['ScheduledDepartureTime'] ?? '').substring(0, 10)
+    // FlightTime from Skynet is in minutes — convert to hours for comparison
+    const flightTimeHours = Math.round((Number(r['FlightTime'] ?? 0) / 60) * 100) / 100
+
+    const offTime = String(oooi?.['Off'] ?? '').replace(/[^0-9]/g, '')
+    return {
+      id:                    `${String(r['Reference'] ?? '')}_${String(r['Aircraft'] ?? '')}_${offTime}`,
+      flight_reference:      String(r['Reference'] ?? ''),
+      flight_number:         String(r['FlightNumber'] ?? ''),
+      aircraft_registration: String(r['Aircraft'] ?? ''),
+      departure_date:        departureDate,
+      flight_time_hours:     flightTimeHours,
+      billed_flight_time:    flightTimeHours,
+      landings:              0,
+      captain,
+      other_crew:            otherCrew,
+      passenger_count:       0,
+      client:                String(r['Contract'] ?? ''),
+      fuel_docket:           '',
+      fuel_qty:              0,
+      departure_point:       String(dep?.['DepartureAirport'] ?? ''),
+      arrival_point:         String(dest?.['ArrivalAirport'] ?? ''),
+      status:                '',
+    }
+  })
 }
 
 // Match on DFR number + aircraft reg (date can drift by timezone offset)
