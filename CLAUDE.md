@@ -2,6 +2,12 @@
 
 # ANG Flight Log App — Claude Code Context
 
+## Memory & Session Management
+- at the end of every session, update this file with any new patterns, decisions, or context discovered
+- if a new table, column, or database behaviour is found, document it in the database section
+- if a new pattern or convention is established in the code, add it to key patterns
+- after updating this file, always commit and push to github
+
 ## Communication Style
 - user types lowercase and short — do not assume missing words are errors
 - never use CAPS in responses
